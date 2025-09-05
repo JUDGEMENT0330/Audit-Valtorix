@@ -7,7 +7,7 @@ export default function HomePage() {
     // General state
     const [portTarget, setPortTarget] = useState('');
     const [fuzzerTarget, setFuzzerTarget] = useState('');
-    const [techTarget, setTechTarget] = useState('');
+    // const [techTarget, setTechTarget] = useState(''); // Disabled
     const [scanType, setScanType] = useState('quick');
 
     const [logs, setLogs] = useState({ port: [], fuzzer: [], tech: [] });
@@ -65,10 +65,10 @@ export default function HomePage() {
         }
     };
 
-    const startTechDetection = () => {
-        if (!techTarget) return alert('Por favor, introduce una URL válida');
-        handleApiCall('tech-detection', { target: techTarget }, 'tech', 'tech');
-    };
+    // const startTechDetection = () => {
+    //     if (!techTarget) return alert('Por favor, introduce una URL válida');
+    //     handleApiCall('tech-detection', { target: techTarget }, 'tech', 'tech');
+    // };
 
     const renderLog = (log) => (
         log.map((entry, index) => {
@@ -86,10 +86,11 @@ export default function HomePage() {
         })
     );
     
-    const TabButton = ({ tabName, label }) => (
+    const TabButton = ({ tabName, label, disabled = false }) => (
         <button 
-            onClick={() => setActiveTab(tabName)} 
-            className={`tab-button flex-1 min-w-0 px-4 py-3 rounded-md transition-all duration-300 text-sm font-medium ${activeTab === tabName ? 'bg-green-600 text-black' : 'text-green-400'}`}>
+            onClick={() => !disabled && setActiveTab(tabName)} 
+            disabled={disabled}
+            className={`tab-button flex-1 min-w-0 px-4 py-3 rounded-md transition-all duration-300 text-sm font-medium ${activeTab === tabName ? 'bg-green-600 text-black' : 'text-green-400'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
             {label}
         </button>
     );
@@ -111,7 +112,7 @@ export default function HomePage() {
                     <div className="flex flex-wrap gap-2">
                         <TabButton tabName="port-scanner" label="🔍 Escáner de Puertos" />
                         <TabButton tabName="web-fuzzer" label="🌐 Web Fuzzer" />
-                        <TabButton tabName="tech-detector" label="🔧 Detector de Tecnología" />
+                        <TabButton tabName="tech-detector" label="🔧 Detector de Tecnología (Deshabilitado)" disabled={true} />
                     </div>
                 </div>
 
@@ -171,45 +172,8 @@ export default function HomePage() {
                 <div style={{ display: activeTab === 'tech-detector' ? 'block' : 'none' }}>
                     <div className="glassmorphism rounded-lg p-6 mb-6">
                         <h2 className="text-2xl font-bold terminal-text mb-4">🔧 Detector de Tecnología</h2>
-                        <input type="text" value={techTarget} onChange={e => setTechTarget(e.target.value)} placeholder="https://ejemplo.com" className="w-full mb-4 bg-black border border-green-500 rounded-md px-4 py-2 text-green-400 focus:outline-none focus:border-green-300" />
-                        <button onClick={startTechDetection} disabled={loading.tech} className="glow-button bg-green-600 hover:bg-green-500 text-black font-bold py-3 px-6 rounded-md">
-                            {loading.tech ? 'Analizando...' : 'Analizar Tecnología'}
-                        </button>
+                        <p className="text-yellow-400">Esta función ha sido deshabilitada temporalmente debido a un problema de compatibilidad con el entorno de despliegue.</p>
                     </div>
-                    {(loading.tech || results.tech) && (
-                        <div className="glassmorphism rounded-lg p-6">
-                            <h3 className="text-xl font-bold terminal-text mb-4">Análisis de Tecnología</h3>
-                            <div className="bg-black rounded-md p-4 h-32 overflow-y-auto mb-4 border border-green-500">{renderLog(logs.tech)}</div>
-                            {results.tech && (
-                                <div className="glassmorphism rounded-md p-4">
-                                     <h4 className="text-lg font-bold terminal-text mb-3">📊 Tecnologías Detectadas</h4>
-                                     {results.tech.technologies?.length > 0 ? (
-                                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                                            {results.tech.technologies.reduce((acc, tech) => {
-                                                tech.categories.forEach(cat => {
-                                                    if (!acc[cat.name]) acc[cat.name] = [];
-                                                    acc[cat.name].push(tech.name);
-                                                });
-                                                return acc;
-                                            }, {}) 
-                                            && Object.entries(results.tech.technologies.reduce((acc, tech) => {
-                                                tech.categories.forEach(cat => {
-                                                    if (!acc[cat.name]) acc[cat.name] = [];
-                                                    acc[cat.name].push(tech.name);
-                                                });
-                                                return acc;
-                                            }, {})).map(([category, techs]) => (
-                                                <div key={category}>
-                                                    <h5 className="text-green-300 font-semibold mb-1">{category}</h5>
-                                                    <p className="text-yellow-400">{techs.join(', ')}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                     ) : <p>No se detectaron tecnologías específicas.</p>}
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             </main>
         </>
