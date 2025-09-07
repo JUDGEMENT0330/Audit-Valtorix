@@ -2,10 +2,19 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+:root {
+    --background-color: #0a0a0a;
+    --primary-color: #00ff9b;
+    --secondary-color: #888888;
+    --accent-color: #00ff9b;
+    --glass-bg: rgba(0, 255, 155, 0.05);
+    --glass-border: rgba(0, 255, 155, 0.2);
+}
+
 body {
-    background-color: black;
+    background-color: var(--background-color);
     min-height: 100vh;
-    color: #16a34a; /* green-600 */
+    color: var(--primary-color);
 }
 
 * {
@@ -13,42 +22,69 @@ body {
 }
 
 .glassmorphism {
-    background: rgba(0, 255, 0, 0.05);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 255, 0, 0.2);
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.glassmorphism:hover {
+    box-shadow: 0 0 15px rgba(0, 255, 155, 0.1);
 }
 
 .terminal-text {
-    color: #00ff00;
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    color: var(--primary-color);
+    text-shadow: 0 0 8px rgba(0, 255, 155, 0.4);
 }
 
-.scan-animation::after {
-    content: '▋';
-    animation: blink 1s step-end infinite;
+.tab-button {
+    position: relative;
+    overflow: hidden;
 }
 
-@keyframes blink {
-    from, to {
-        color: transparent;
-    }
-    50% {
-        color: #00ff00;
-    }
+.tab-button::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+.tab-button.active::after, .tab-button:hover::after {
+    width: 80%;
 }
 
 .glow-button {
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    background-color: var(--accent-color);
+    color: #000;
+    box-shadow: 0 0 25px rgba(0, 255, 155, 0.4);
     transition: all 0.3s ease;
 }
 
 .glow-button:hover {
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(0, 255, 155, 0.6);
+    transform: translateY(-3px) scale(1.02);
 }
 
 .glow-button:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
     box-shadow: none;
+    transform: none;
+}
+
+input[type="text"], select {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    color: var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus, select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(0, 255, 155, 0.2);
 }
