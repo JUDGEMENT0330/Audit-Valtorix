@@ -1,33 +1,17 @@
-import net from 'net';
+import portscanner from 'portscanner';
 
-// This function checks a single port
+// This function checks a single port and returns a Promise
 const checkPort = (port, host) => {
-    return new Promise((resolve) => {
-        const socket = new net.Socket();
-        socket.setTimeout(1500); // 1.5 seconds timeout
-
-        socket.on('connect', () => {
-            socket.destroy();
-            resolve({ port, status: 'open' });
+    return new Promise((resolve, reject) => {
+        portscanner.checkPortStatus(port, host, (error, status) => {
+            if (error) {
+                // Resolve with a closed status on error, as we can't determine if it's open
+                return resolve({ port, status: 'closed' });
+            }
+            resolve({ port, status });
         });
-
-        socket.on('timeout', () => {
-            socket.destroy();
-            resolve({ port, status: 'closed' });
-        });
-
-        socket.on('error', (err) => {
-            // Ignore ECONNREFUSED, it just means the port is closed.
-            // Other errors might be more significant but for this simple scanner,
-            // we'll treat them as closed.
-            socket.destroy();
-            resolve({ port, status: 'closed' });
-        });
-
-        socket.connect(port, host);
     });
 };
-
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -65,7 +49,6 @@ export default async function handler(req, res) {
         const results = await Promise.all(portsToScan.map(port => checkPort(port, target)));
         const openPorts = results.filter(r => r.status === 'open');
         
-        // The response structure is simplified compared to the nmap one
         res.status(200).json({
             host: target,
             status: 'scanned',
