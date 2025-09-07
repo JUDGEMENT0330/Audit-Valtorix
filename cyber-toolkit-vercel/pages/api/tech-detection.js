@@ -1,13 +1,5 @@
 import axios from 'axios';
-
-const technologies = [
-    { name: 'Next.js', headers: { 'x-powered-by': /next.js/i } },
-    { name: 'React', html: /<[^>]+data-reactroot/i },
-    { name: 'jQuery', html: /jquery\.js/i },
-    { name: 'Nginx', headers: { 'server': /nginx/i } },
-    { name: 'Apache', headers: { 'server': /apache/i } },
-    { name: 'Vercel', headers: { 'server': /vercel/i } },
-];
+import wappalyzer from 'simple-wappalyzer';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -22,25 +14,13 @@ export default async function handler(req, res) {
 
     try {
         const response = await axios.get(target, { timeout: 5000 });
-        const detectedTechnologies = [];
+        const detections = await wappalyzer({
+            url: target,
+            headers: response.headers,
+            html: response.data
+        });
 
-        for (const tech of technologies) {
-            if (tech.headers) {
-                for (const header in tech.headers) {
-                    if (response.headers[header] && response.headers[header].match(tech.headers[header])) {
-                        detectedTechnologies.push(tech.name);
-                    }
-                }
-            }
-
-            if (tech.html) {
-                if (response.data.match(tech.html)) {
-                    detectedTechnologies.push(tech.name);
-                }
-            }
-        }
-
-        res.status(200).json({ technologies: [...new Set(detectedTechnologies)] });
+        res.status(200).json({ technologies: detections });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al analizar el sitio web.', details: error.message });
