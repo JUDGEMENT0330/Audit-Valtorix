@@ -13,8 +13,7 @@
     "react": "^18",
     "react-dom": "^18",
     "tailwindcss": "^3.4.1",
-    "simple-wappalyzer": "^1.1.72",
-    "portscanner": "^2.2.0"
+    "simple-wappalyzer": "^1.1.72"
   },
   "devDependencies": {
     "autoprefixer": "^10",

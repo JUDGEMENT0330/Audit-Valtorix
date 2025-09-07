@@ -8,11 +8,12 @@ export default function HomePage() {
     const [portTarget, setPortTarget] = useState('');
     const [fuzzerTarget, setFuzzerTarget] = useState('');
     const [techTarget, setTechTarget] = useState('');
+    const [dnsTarget, setDnsTarget] = useState('');
     const [scanType, setScanType] = useState('quick');
 
-    const [logs, setLogs] = useState({ port: [], fuzzer: [], tech: [] });
-    const [results, setResults] = useState({ port: null, fuzzer: null, tech: null });
-    const [loading, setLoading] = useState({ port: false, fuzzer: false, tech: false });
+    const [logs, setLogs] = useState({ port: [], fuzzer: [], tech: [], dns: [] });
+    const [results, setResults] = useState({ port: null, fuzzer: null, tech: null, dns: null });
+    const [loading, setLoading] = useState({ port: false, fuzzer: false, tech: false, dns: false });
 
     const logMessage = (logType, message, type = 'info') => {
         const timestamp = new Date().toLocaleTimeString();
@@ -70,6 +71,11 @@ export default function HomePage() {
         handleApiCall('tech-detection', { target: techTarget }, 'tech', 'tech');
     };
 
+    const startDnsDumpster = () => {
+        if (!dnsTarget) return alert('Por favor, introduce un dominio válido');
+        handleApiCall('dns-dumpster', { target: dnsTarget }, 'dns', 'dns');
+    };
+
     const renderLog = (log) => (
         log.map((entry, index) => {
             let colorClass = 'text-green-400';
@@ -111,6 +117,7 @@ export default function HomePage() {
                     <div className="flex flex-wrap gap-2">
                         <TabButton tabName="port-scanner" label="🔍 Escáner de Puertos" />
                         <TabButton tabName="web-fuzzer" label="🌐 Web Fuzzer" />
+                        <TabButton tabName="dns-dumpster" label="🗑️ DNS Dumpster" />
                         <TabButton tabName="tech-detector" label="🔧 Detector de Tecnología" />
                     </div>
                 </div>
@@ -162,6 +169,35 @@ export default function HomePage() {
                                     <h4 className="text-lg font-bold terminal-text mb-3">📊 Resumen</h4>
                                     <p>Rutas Encontradas: <span className="text-yellow-400 font-bold">{results.fuzzer.found?.length || 0}</span></p>
                                     <p>Rutas Probadas: <span className="text-gray-400">{(results.fuzzer.found?.length || 0) + (results.fuzzer.notFound?.length || 0)}</span></p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ display: activeTab === 'dns-dumpster' ? 'block' : 'none' }}>
+                    <div className="glassmorphism rounded-lg p-6 mb-6">
+                        <h2 className="text-2xl font-bold terminal-text mb-4">🗑️ DNS Dumpster</h2>
+                        <input type="text" value={dnsTarget} onChange={e => setDnsTarget(e.target.value)} placeholder="ejemplo.com" className="w-full mb-4 bg-black border border-green-500 rounded-md px-4 py-2 text-green-400 focus:outline-none focus:border-green-300" />
+                        <button onClick={startDnsDumpster} disabled={loading.dns} className="glow-button bg-green-600 hover:bg-green-500 text-black font-bold py-3 px-6 rounded-md">
+                            {loading.dns ? 'Buscando...' : 'Iniciar Búsqueda DNS'}
+                        </button>
+                    </div>
+                    {(loading.dns || results.dns) && (
+                        <div className="glassmorphism rounded-lg p-6">
+                            <h3 className="text-xl font-bold terminal-text mb-4">Resultados de DNS</h3>
+                            <div className="bg-black rounded-md p-4 h-64 overflow-y-auto mb-4 border border-green-500">{renderLog(logs.dns)}</div>
+                            {results.dns && (
+                                <div className="glassmorphism rounded-md p-4">
+                                    <h4 className="text-lg font-bold terminal-text mb-3">📊 Resumen de Registros DNS</h4>
+                                    {Object.entries(results.dns).map(([type, records]) => (
+                                        <div key={type} className="mb-2">
+                                            <h5 className="text-green-300 font-semibold">{type}</h5>
+                                            <ul className="list-disc list-inside text-yellow-400">
+                                                {records.map((record, i) => <li key={i}>{record}</li>)}
+                                            </ul>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
