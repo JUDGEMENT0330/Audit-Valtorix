@@ -46,7 +46,21 @@ const CodeSnippet = ({ code, language = 'bash' }) => (
         <div className="flex items-center justify-between mb-2">
             <span className="text-emerald-400 text-xs font-mono">{language.toUpperCase()}</span>
             <button 
-                onClick={() => navigator.clipboard.writeText(code)}
+                onClick={() => {
+                    // Usar document.execCommand para compatibilidad en iFrames
+                    const ta = document.createElement('textarea');
+                    ta.value = code;
+                    ta.style.position = 'absolute';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        document.execCommand('copy');
+                    } catch (err) {
+                        console.error('No se pudo copiar al portapapeles', err);
+                    }
+                    document.body.removeChild(ta);
+                }}
                 className="text-gray-400 hover:text-emerald-400 text-xs px-2 py-1 rounded border border-gray-600 hover:border-emerald-500 transition-colors">
                 Copiar
             </button>
@@ -70,7 +84,8 @@ const PortScanner = ({ useApi }) => {
     ];
 
     const startScan = async () => {
-        if (!target) return alert('Por favor, introduce un objetivo válido');
+        // CORRECCIÓN: No usar alert(). Usar logMessage para mostrar errores.
+        if (!target) return logMessage('Por favor, introduce un objetivo válido', 'error');
         const ports = scanType === 'custom' ? customPorts : scanTypes.find(s => s.value === scanType).ports;
         const data = await handleApiCall('scan-ports', { target, scanType, ports });
         if (data && data.ports) {
@@ -136,7 +151,7 @@ nmap -sS -T2 ${target || 'target.com'}`;
                         {loading ? '⏳ Escaneando...' : '🚀 Iniciar Escaneo'}
                     </button>
                     <button 
-                        onClick={() => { setTarget(''); setResults(null); setLogs([]); }}
+                        onClick={() => { setTarget(''); useApi('port').handleApiCall('', {}, true); }} // Limpiar
                         className="px-6 py-2 sm:py-3 rounded-lg border border-gray-600 hover:border-emerald-500 transition-colors text-sm sm:text-base">
                         🗑️ Limpiar
                     </button>
@@ -162,7 +177,7 @@ nmap -sS -T2 ${target || 'target.com'}`;
                                     <div className="text-sm text-gray-400">Servicios Únicos</div>
                                 </div>
                                 <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg p-4">
-                                    <div className="text-3xl font-bold text-blue-400">{target}</div>
+                                    <div className="text-3xl font-bold text-blue-400 truncate">{target}</div>
                                     <div className="text-sm text-gray-400 truncate">Objetivo</div>
                                 </div>
                             </div>
@@ -231,7 +246,8 @@ const WebFuzzer = ({ useApi }) => {
     ];
 
     const startFuzzing = async () => {
-        if (!target) return alert('Por favor, introduce una URL válida');
+        // CORRECCIÓN: No usar alert(). Usar logMessage para mostrar errores.
+        if (!target) return logMessage('Por favor, introduce una URL válida', 'error');
         const data = await handleApiCall('web-fuzzer', { target, wordlist, extensions });
         if (data && data.found) {
             logMessage(`✅ Se encontraron ${data.found.length} rutas accesibles.`, 'success');
@@ -305,7 +321,7 @@ ffuf -u ${target || 'https://target.com'}/FUZZ -w wordlist.txt -fs 0`;
                             {loading ? '⏳ Fuzzing...' : '🚀 Iniciar Fuzzing'}
                         </button>
                         <button 
-                            onClick={() => { setTarget(''); setResults(null); setLogs([]); }}
+                            onClick={() => { setTarget(''); useApi('fuzzer').handleApiCall('', {}, true); }} // Limpiar
                             className="px-6 py-2 sm:py-3 rounded-lg border border-gray-600 hover:border-emerald-500 transition-colors">
                             🗑️ Limpiar
                         </button>
@@ -384,10 +400,11 @@ ffuf -u ${target || 'https://target.com'}/FUZZ -w wordlist.txt -fs 0`;
 // Herramienta: DNS Dumpster
 const DnsDumpster = ({ useApi }) => {
     const [target, setTarget] = useState('');
-    const { logs, results, loading, handleApiCall } = useApi('dns');
+    const { logs, results, loading, handleApiCall, logMessage } = useApi('dns');
 
     const startScan = () => {
-        if (!target) return alert('Por favor, introduce un dominio válido');
+        // CORRECCIÓN: No usar alert(). Usar logMessage para mostrar errores.
+        if (!target) return logMessage('Por favor, introduce un dominio válido', 'error');
         handleApiCall('dns-dumpster', { target });
     };
 
@@ -428,7 +445,7 @@ dig ${target || 'example.com'} TXT`;
                         {loading ? '⏳ Analizando DNS...' : '🚀 Iniciar Análisis'}
                     </button>
                     <button 
-                        onClick={() => { setTarget(''); setResults(null); setLogs([]); }}
+                        onClick={() => { setTarget(''); useApi('dns').handleApiCall('', {}, true); }} // Limpiar
                         className="px-6 py-2 sm:py-3 rounded-lg border border-gray-600 hover:border-emerald-500 transition-colors">
                         🗑️ Limpiar
                     </button>
@@ -442,7 +459,9 @@ dig ${target || 'example.com'} TXT`;
                     
                     {results && Object.keys(results).length > 0 && (
                         <div className="space-y-4">
-                            {Object.entries(results).map(([type, records]) => records && records.length > 0 && (
+                            {/* CORRECCIÓN 1: Comprobar que 'records' es un Array antes de mapear */}
+                            {Object.entries(results).map(([type, records]) => 
+                                Array.isArray(records) && records.length > 0 && (
                                 <div key={type} className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-4 border border-emerald-500/20">
                                     <h4 className="text-emerald-400 font-bold mb-3 flex items-center gap-2">
                                         <span className="text-lg">📝</span>
@@ -454,7 +473,8 @@ dig ${target || 'example.com'} TXT`;
                                     <div className="space-y-2">
                                         {records.map((record, i) => (
                                             <div key={i} className="bg-black/30 rounded px-3 py-2 font-mono text-xs sm:text-sm text-yellow-400 break-all">
-                                                {record}
+                                                {/* CORRECCIÓN 2: Mostrar 'record.data' en lugar del objeto completo */}
+                                                {record.data}
                                             </div>
                                         ))}
                                     </div>
@@ -476,10 +496,11 @@ dig ${target || 'example.com'} TXT`;
 // Herramienta: Detector de Tecnología
 const TechDetector = ({ useApi }) => {
     const [target, setTarget] = useState('');
-    const { logs, results, loading, handleApiCall } = useApi('tech');
+    const { logs, results, loading, handleApiCall, logMessage } = useApi('tech');
 
     const startScan = () => {
-        if (!target) return alert('Por favor, introduce una URL válida');
+        // CORRECCIÓN: No usar alert(). Usar logMessage para mostrar errores.
+        if (!target) return logMessage('Por favor, introduce una URL válida', 'error');
         handleApiCall('tech-detection', { target });
     };
 
@@ -519,7 +540,7 @@ curl -I ${target || 'https://example.com'}`;
                         {loading ? '⏳ Analizando...' : '🚀 Analizar Tecnología'}
                     </button>
                     <button 
-                        onClick={() => { setTarget(''); setResults(null); setLogs([]); }}
+                        onClick={() => { setTarget(''); useApi('tech').handleApiCall('', {}, true); }} // Limpiar
                         className="px-6 py-2 sm:py-3 rounded-lg border border-gray-600 hover:border-emerald-500 transition-colors">
                         🗑️ Limpiar
                     </button>
@@ -531,41 +552,41 @@ curl -I ${target || 'https://example.com'}`;
                     <h3 className="text-lg sm:text-xl font-bold terminal-text mb-4">📊 Tecnologías Detectadas</h3>
                     <LogPanel logs={logs} />
                     
-                    {results && results.technologies && results.technologies.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {results.technologies.reduce((acc, tech) => {
-                                tech.categories.forEach(cat => {
-                                    if (!acc[cat.name]) acc[cat.name] = [];
-                                    acc[cat.name].push(tech);
-                                });
-                                return acc;
-                            }, {}) && 
-                            Object.entries(results.technologies.reduce((acc, tech) => {
-                                tech.categories.forEach(cat => {
-                                    if (!acc[cat.name]) acc[cat.name] = [];
-                                    acc[cat.name].push(tech);
-                                });
-                                return acc;
-                            }, {})).map(([category, techs]) => (
-                                <div key={category} className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-4 border border-emerald-500/20">
-                                    <h4 className="text-emerald-400 font-semibold mb-3 text-sm">{category}</h4>
-                                    <div className="space-y-2">
-                                        {techs.map((tech, idx) => (
-                                            <div key={idx} className="flex items-center gap-2">
-                                                {tech.icon && (
-                                                    <img src={tech.icon} alt={tech.name} className="w-5 h-5" />
-                                                )}
-                                                <span className="text-yellow-400 text-xs sm:text-sm">{tech.name}</span>
-                                                {tech.version && (
-                                                    <span className="text-gray-500 text-xs">v{tech.version}</span>
-                                                )}
-                                            </div>
-                                        ))}
+                    {/* CORRECCIÓN: Lógica de renderizado mejorada y más segura */}
+                    {results && results.technologies && results.technologies.length > 0 && (() => {
+                        // Primero, agrupar las tecnologías
+                        const groupedTechs = results.technologies.reduce((acc, tech) => {
+                            (tech.categories || []).forEach(cat => {
+                                if (!acc[cat.name]) acc[cat.name] = [];
+                                acc[cat.name].push(tech);
+                            });
+                            return acc;
+                        }, {});
+
+                        // Luego, renderizar el objeto agrupado
+                        return (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {Object.entries(groupedTechs).map(([category, techs]) => (
+                                    <div key={category} className="bg-gradient-to-br from-white/5 to-white/10 rounded-lg p-4 border border-emerald-500/20">
+                                        <h4 className="text-emerald-400 font-semibold mb-3 text-sm">{category}</h4>
+                                        <div className="space-y-2">
+                                            {techs.map((tech, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    {tech.icon && (
+                                                        <img src={`https://www.wappalyzer.com/images/icons/${tech.icon}`} alt={tech.name} className="w-5 h-5" />
+                                                    )}
+                                                    <span className="text-yellow-400 text-xs sm:text-sm">{tech.name}</span>
+                                                    {tech.version && (
+                                                        <span className="text-gray-500 text-xs">v{tech.version}</span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                ))}
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -591,7 +612,13 @@ export default function HomePage() {
             setLogs(prev => ({ ...prev, [logType]: [...prev[logType], { timestamp, message, type }] }));
         };
 
-        const handleApiCall = async (api, body) => {
+        const handleApiCall = async (api, body, clear = false) => {
+            if (clear) {
+                setLogs(prev => ({ ...prev, [logType]: [] }));
+                setResults(prev => ({ ...prev, [logType]: null }));
+                return;
+            }
+
             setLoading(prev => ({ ...prev, [logType]: true }));
             setResults(prev => ({ ...prev, [logType]: null }));
             setLogs(prev => ({ ...prev, [logType]: [] }));
@@ -633,7 +660,9 @@ export default function HomePage() {
             <Head>
                 <title>Valtorix Cyber Toolkit | Herramientas de Ciberseguridad</title>
                 <meta name="description" content="Suite profesional de herramientas de ciberseguridad para capacitación, CTF y auditorías en entornos controlados" />
-                <link rel="icon" href="/favicon.ico" />
+                <link rel="icon" href="https://cybervaltorix.com/wp-content/uploads/2024/07/cropped-Valtorix-Favicon-1-32x32.png" sizes="32x32" />
+                <link rel="icon" href="https://cybervaltorix.com/wp-content/uploads/2024/07/cropped-Valtorix-Favicon-1-192x192.png" sizes="192x192" />
+                <link rel="apple-touch-icon" href="https://cybervaltorix.com/wp-content/uploads/2024/07/cropped-Valtorix-Favicon-1-180x180.png" />
                 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             </Head>
@@ -648,6 +677,7 @@ export default function HomePage() {
                                     src="https://cybervaltorix.com/wp-content/uploads/2025/09/Logo-Valtorix-1.png" 
                                     alt="Valtorix Logo" 
                                     className="h-8 sm:h-12 w-auto object-contain"
+                                    onError={(e) => e.currentTarget.src = 'https://placehold.co/200x50/000000/10b981?text=Valtorix'}
                                 />
                                 <div className="hidden sm:block">
                                     <h1 className="text-lg sm:text-2xl font-bold terminal-text">CYBER TOOLKIT</h1>
@@ -656,7 +686,7 @@ export default function HomePage() {
                             </div>
                             <div className="flex items-center gap-2 sm:gap-4">
                                 <span className="hidden sm:inline-block px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                    v2.0 Enhanced
+                                    v2.1 Corregido
                                 </span>
                                 <span className="px-2 sm:px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30">
                                     Training Mode
